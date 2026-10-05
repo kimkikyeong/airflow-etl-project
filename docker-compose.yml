@@ -1,0 +1,83 @@
+version: '3.8'
+
+networks:
+  info-net:
+    driver: bridge
+
+services:
+  # 1. 정보계 및 원천 DB용 Oracle Database
+  oracle-db:
+    image: container-registry.oracle.com/database/free:latest
+    container_name: oracle-db
+    ports:
+      - "1521:1521"
+    environment:
+      - ORACLE_PWD=${ORACLE_PWD:?.env에 ORACLE_PWD를 설정하세요}
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+    networks:
+      - info-net
+
+  # 2. Airflow 메타데이터 저장용 PostgreSQL DB
+  postgres:
+    image: postgres:13
+    container_name: airflow-postgres
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?.env에 POSTGRES_PASSWORD를 설정하세요}
+      - POSTGRES_DB=airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - info-net
+
+# 3. Airflow 웹 UI 화면 (Webserver)
+  airflow-webserver:
+    image: apache/airflow:2.8.1-python3.10
+    container_name: airflow-webserver
+    restart: always
+    depends_on:
+      - postgres
+      - oracle-db
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:${POSTGRES_PASSWORD:?.env에 POSTGRES_PASSWORD를 설정하세요}@postgres/airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY:?.env에 FERNET_KEY를 설정하세요}
+      - _PIP_ADDITIONAL_REQUIREMENTS=apache-airflow-providers-oracle --constraint https://raw.githubusercontent.com/apache/airflow/constraints-2.8.1/constraints-3.10.txt
+      - AIRFLOW_CONN_ORACLE_DEFAULT=${AIRFLOW_CONN_ORACLE_DEFAULT}
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    ports:
+      - "8080:8080"
+    command: webserver
+    networks:
+      - info-net
+
+  # 4. Airflow 스케줄러 (Task 실행 담당)
+  airflow-scheduler:
+    image: apache/airflow:2.8.1-python3.10
+    container_name: airflow-scheduler
+    restart: always
+    depends_on:
+      - airflow-webserver
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:${POSTGRES_PASSWORD:?.env에 POSTGRES_PASSWORD를 설정하세요}@postgres/airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY:?.env에 FERNET_KEY를 설정하세요}
+      - _PIP_ADDITIONAL_REQUIREMENTS=apache-airflow-providers-oracle --constraint https://raw.githubusercontent.com/apache/airflow/constraints-2.8.1/constraints-3.10.txt
+      - AIRFLOW_CONN_ORACLE_DEFAULT=${AIRFLOW_CONN_ORACLE_DEFAULT}
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    command: scheduler
+    networks:
+      - info-net
+
+volumes:
+  oracle_data:
+  postgres_data:

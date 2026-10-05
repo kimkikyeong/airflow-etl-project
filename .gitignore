@@ -1,0 +1,15 @@
+# 비밀 정보
+.env
+
+# Airflow 런타임 산출물
+logs/
+__pycache__/
+*.pyc
+
+# Claude Code 개인 설정 (비밀번호·로컬 경로 포함)
+.claude/settings.json
+.claude/settings.local.json
+
+# 백업 데이터 (추출 스크립트만 관리)
+backup/*.sql
+!backup/export_source.sql
