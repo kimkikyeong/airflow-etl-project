@@ -152,6 +152,7 @@ welcome-project/
 ├── .env                         # 비밀번호·Fernet Key·Connection 정의 (버전 관리 제외)
 ├── .env.example                 # .env 템플릿 (값 없음, 버전 관리 대상)
 ├── .gitignore
+├── README.md                    # 프로젝트 소개·빠른 시작
 ├── docker-compose.yml           # 컨테이너·네트워크·볼륨 정의 (비밀 값은 .env 참조)
 ├── dags/
 │   └── loan_summary_dag.py      # ETL DAG
